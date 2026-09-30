@@ -1,0 +1,475 @@
+(function(){
+'use strict';
+const CFG=window.APCONFIG||{};
+const DEMO=!CFG.SUPABASE_URL||!CFG.SUPABASE_ANON_KEY||!window.supabase;
+const sb=DEMO?null:window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);
+const UPI_ID=CFG.UPI_ID||'yourname@upi';
+const DEV='०१२३४५६७८९';
+const dv=n=>String(n).replace(/\d/g,d=>DEV[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MONTHS=['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'];
+const MON_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MAG='अक्षरपथ';
+const PLANS={20:{name:'छोटी रचना',kinds:'कविता, शायरी, हाइकु',words:150},50:{name:'लेख या कहानी',kinds:'लघुकथा, लेख, संस्मरण',words:600},100:{name:'विशेष रचना',kinds:'लंबा लेख, यात्रा-वृत्त',words:1500}};
+const ST_REVIEW='review',ST_PUB='published';
+const STL={review:'समीक्षा में',published:'प्रकाशित'};
+
+/* Sample content shown only in demo mode (no Supabase keys in config.js). */
+const SAMPLE=[
+{vol:1,ank:3,m:8,y:2026,theme:'बारिश और स्मृतियाँ',
+ note:'बारिश सिर्फ़ मौसम नहीं, याद भी है। इस अंक की रचनाएँ उसी भीगी हुई स्मृति के आसपास घूमती हैं।',
+ articles:[
+ {t:'भीगा हुआ शहर',by:'नीरजा सिंह',city:'वाराणसी',kind:'कविता',body:`बारिश ने आज फिर शहर को धो दिया,
+छतरियाँ खुलीं, चेहरे छिप गए।
+चाय की दुकान पर भाप उठती रही,
+और पुरानी बातें फिर से जग गईं।
+
+गली के मोड़ पर एक बच्चा कागज़ की नाव लिए,
+पानी से पूछ रहा था, कहाँ तक जाओगे?
+पानी चुप रहा, बस बहता रहा,
+जैसे उसे भी अपना पता मालूम न हो।`},
+ {t:'आख़िरी बस',by:'रमेश कुमार',city:'लखनऊ',kind:'लघुकथा',body:`रात के दस बजे थे। बस-अड्डे पर आख़िरी बस खड़ी थी और कंडक्टर बार-बार घड़ी देख रहा था।
+
+एक बूढ़ी अम्मा हाँफती हुई आईं, हाथ में छोटी-सी पोटली थी। कंडक्टर ने कहा, "अम्मा, जल्दी बैठिए, देर हो रही है।"
+
+अम्मा बैठीं और धीमे से बोलीं, "बेटा, गाँव में बेटे का इंतज़ार है। सुबह तक पहुँच जाऊँ तो बहुत है।"
+
+कंडक्टर ने चुपचाप सीटी बजाई और ड्राइवर से कहा, "इस बार रास्ते में कहीं नहीं रुकना।" सुबह जब गाँव आया, तो उसने खुद उतरकर अम्मा की पोटली उठाई।`},
+ {t:'हिंदी में विज्ञान लिखने की ज़रूरत',by:'डॉ. अनुपमा त्रिपाठी',city:'प्रयागराज',kind:'लेख',body:`विज्ञान की भाषा अक्सर अंग्रेज़ी मान ली जाती है, जबकि समझ किसी भी भाषा में बन सकती है। जब विद्यार्थी अपनी मातृभाषा में प्रयोग, तर्क और निष्कर्ष पढ़ता है, तो उसे रटना कम और सोचना ज़्यादा पड़ता है।
+
+हिंदी में विज्ञान लेखन के लिए तीन चीज़ें चाहिए: सरल शब्द, स्थानीय उदाहरण और सटीक शब्दावली।
+
+'ऊर्जा' और 'बल' जैसे शब्द रोज़मर्रा की बातचीत में भी आते हैं, इसलिए उन्हें कक्षा से जोड़ना कठिन नहीं है। ज़रूरत बस इतनी है कि लेखक जटिल बात को छोटे वाक्यों में समझाएँ और पाठक पर भरोसा रखें।`},
+ {t:'अल्मोड़ा की एक सुबह',by:'सौरभ पांडे',city:'हल्द्वानी',kind:'यात्रा-संस्मरण',body:`सुबह के पाँच बजे थे और पहाड़ों पर धुंध उतर रही थी। मैं होमस्टे की बालकनी में चाय लेकर बैठा था।
+
+सामने देवदार के पेड़ धीरे-धीरे धुंध से बाहर आ रहे थे, जैसे कोई पर्दा उठ रहा हो। नीचे घाटी में घंटी की आवाज़ आई, शायद किसी मंदिर की।
+
+पास से गुज़रती एक महिला ने मुस्कुराकर पूछा, "चाय ठंडी तो नहीं हो गई?"
+
+उस दिन पहली बार लगा कि शहर की भागदौड़ में हम सुबह को कितना खो देते हैं।`}
+ ]},
+{vol:1,ank:2,m:7,y:2026,theme:'घर और रसोई',
+ note:'घर की बातें अक्सर रसोई से शुरू होती हैं। इस अंक में ऐसी ही रचनाएँ हैं।',
+ articles:[
+ {t:'माँ की रसोई',by:'अंजलि वर्मा',city:'भोपाल',kind:'कविता',body:`सुबह की पहली रोशनी से पहले
+रसोई में बर्तनों की आवाज़ जाग जाती थी।
+माँ की चूड़ियाँ खनकती थीं,
+और घर को पता चल जाता था कि दिन शुरू हुआ।
+
+आज भी जब कहीं तवे पर रोटी की महक उठती है,
+मन एक क्षण को बच्चा बन जाता है।`},
+ {t:'पुस्तकालय की खिड़की',by:'विनोद यादव',city:'जयपुर',kind:'लेख',body:`हमारे मोहल्ले का पुस्तकालय एक छोटे कमरे में चलता था। खिड़की के पास की मेज़ पर बैठकर मैंने पहली बार प्रेमचंद पढ़े थे।
+
+वहाँ न कोई शोर था, न कोई जल्दी। बस किताबों की महक थी और पन्ने पलटने की धीमी आवाज़।
+
+आज स्क्रीन पर सैकड़ों किताबें एक साथ मिल जाती हैं, फिर भी उस खिड़की वाली मेज़ की कमी खलती है। शायद पढ़ना सिर्फ़ शब्दों का नहीं, जगह का भी अनुभव होता है।`}
+ ]},
+{vol:1,ank:1,m:6,y:2026,theme:'शुभारंभ',
+ note:'यह अक्षरपथ का पहला अंक है। हम चाहते हैं कि हर पाठक यहाँ लेखक भी बने।',
+ articles:[
+ {t:'पहली बूँद',by:'कविता नेगी',city:'देहरादून',kind:'कविता',body:`तपती ज़मीन ने आसमान से
+चुपचाप कुछ माँगा था,
+और आसमान ने जवाब में
+एक बूँद भेज दी।
+
+मिट्टी ने गहरी साँस ली,
+हवा में सोंधापन घुल गया।
+कभी-कभी बहुत छोटा उत्तर भी
+पूरी प्रतीक्षा को अर्थ दे देता है।`},
+ {t:'लिखना क्यों ज़रूरी है',by:'संपादक मंडल',city:'',kind:'संपादकीय',body:`हर व्यक्ति के पास कम से कम एक कहानी होती है जो उसने कभी लिखी नहीं। अक्षरपथ इसी अनसुनी आवाज़ के लिए बनाया गया है।
+
+यहाँ नए और अनुभवी लेखक साथ छपेंगे। आपकी रचना छोटी हो सकती है, अधूरी-सी लग सकती है, फिर भी उसमें आपका देखा हुआ संसार होगा। हमें वही पढ़ना है।`}
+ ]}];
+let issues=[];
+
+const S={view:'home',issue:0,page:1,busy:false,done:null,user:null,role:null,mine:null,all:null,allIssues:null,editRef:null,openId:null,loading:true};
+const root=document.getElementById('root');
+const toastEl=document.getElementById('toast');
+let toastT=0;
+function toast(msg,keep){toastEl.textContent=msg;toastEl.hidden=false;clearTimeout(toastT);if(!keep)toastT=setTimeout(()=>{toastEl.hidden=true},4200)}
+const pageCount=is=>is.articles.length+3;
+const monthName=is=>MONTHS[is.m]+' '+dv(is.y);
+const issueLabel=is=>'वर्ष '+dv(is.vol)+' · अंक '+dv(is.ank)+' · '+monthName(is);
+const isEditor=()=>S.role==='editor';
+
+/* ---------- one magazine page ---------- */
+function pageEl(is,p,pw){
+  const n=pageCount(is);
+  const el=document.createElement('div');
+  el.className='mp';
+  el.style.width=pw+'px';
+  el.style.height=Math.round(pw*1.414)+'px';
+  el.style.fontSize=(pw*0.036).toFixed(2)+'px';
+  const run='<div class="run"><span>'+MAG+'</span><span>'+issueLabel(is)+'</span></div>';
+  const folio='<div class="folio"><b>'+dv(p)+'</b></div>';
+  if(p===1){
+    el.classList.add('cover');
+    el.innerHTML='<div class="cv-top"><span>मासिक हिंदी पत्रिका</span><span>वर्ष '+dv(is.vol)+' · अंक '+dv(is.ank)+'</span></div>'
+     +'<div class="cv-bar"></div><div class="cv-name">'+MAG+'</div><div class="cv-sub">पढ़िए, लिखिए, छपिए</div>'
+     +'<div class="cv-month">'+monthName(is)+'</div>'
+     +'<div class="cv-theme">इस अंक का विषय<strong>'+esc(is.theme)+'</strong></div>'
+     +'<ul>'+is.articles.map((a,i)=>'<li><span>'+esc(a.t)+'</span><span>'+dv(i+3)+'</span></li>').join('')+'</ul>';
+  }else if(p===2){
+    el.innerHTML=run+'<h2 class="sec">विषय-सूची</h2><p class="note">'+esc(is.note)+'</p>'
+     +is.articles.map((a,i)=>'<div class="trow"><div><span class="t">'+esc(a.t)+'</span><span class="s">'+esc(a.kind)+' · '+esc(a.by)+'</span></div><span class="d"></span><span class="n">'+dv(i+3)+'</span></div>').join('')
+     +folio;
+  }else if(p===n){
+    const nx=new Date(is.y,is.m+1,1);
+    el.classList.add('back');
+    el.innerHTML=run+'<h2>आप भी लिखिए</h2><p>कविता, कहानी, लेख या संस्मरण भेजिए।<br>अगला अंक '+MONTHS[nx.getMonth()]+' '+dv(nx.getFullYear())+' में आएगा।</p>'
+     +'<p class="fee">प्रकाशन शुल्क ₹'+dv(20)+' से ₹'+dv(100)+'</p><p>“रचना भेजें” पृष्ठ पर फ़ॉर्म भरिए।</p>'+folio;
+  }else{
+    const a=is.articles[p-3];
+    const paras=a.body.split(/\n\n+/).map(x=>'<p>'+esc(x)+'</p>').join('');
+    el.innerHTML=run+'<div class="bar"></div><div class="kind">'+esc(a.kind)+'</div><div class="ttl">'+esc(a.t)+'</div>'
+     +'<div class="by">'+esc(a.by)+(a.city?' · '+esc(a.city):'')+'</div>'
+     +'<div class="body'+(a.kind==='कविता'?' poem':'')+'">'+paras+'</div>'+folio;
+  }
+  return el;
+}
+function mountAll(){
+  root.querySelectorAll('.pageslot').forEach(slot=>{
+    const is=issues[+slot.dataset.issue];
+    const p=+slot.dataset.page;
+    const max=+slot.dataset.max||420;
+    const w=Math.max(240,Math.min(slot.clientWidth||max,max));
+    slot.replaceChildren(pageEl(is,p,w));
+  });
+}
+
+
+
+/* ---------- data ---------- */
+async function loadPublic(){
+  if(DEMO){issues=SAMPLE;return}
+  try{
+    const a=await sb.from('issues').select('*').eq('is_live',true).order('ank',{ascending:false});
+    const b=await sb.from('public_articles').select('*').order('published_at',{ascending:true});
+    if(a.error||b.error)throw (a.error||b.error);
+    issues=(a.data||[]).map(i=>({id:i.id,vol:i.vol,ank:i.ank,m:i.month-1,y:i.year,theme:i.theme,note:i.note||'',
+      articles:(b.data||[]).filter(x=>x.issue_id===i.id).map(x=>({t:x.title,by:x.name,city:x.city||'',kind:x.kind,body:x.body}))}));
+  }catch(_){issues=[];toast('अंक लोड नहीं हो सके। कुछ देर बाद पेज दोबारा खोलिए।')}
+}
+async function setUser(session){
+  S.user=session?session.user:null;S.role=null;
+  if(S.user){const r=await sb.from('profiles').select('role').eq('id',S.user.id).maybeSingle();S.role=r.data?r.data.role:null}
+}
+
+/* ---------- views ---------- */
+function header(){
+  const t=(v,l)=>'<button class="tab" data-act="nav" data-v="'+v+'"'+(S.view===v||(v==='archive'&&S.view==='reader')?' aria-current="page"':'')+'>'+l+'</button>';
+  const acct=DEMO?'':(S.user?'<button class="btn ghost sm" data-act="logout">साइन-आउट</button>':'<button class="btn ghost sm" data-act="nav" data-v="submit">साइन-इन</button>');
+  return '<header class="top"><div class="wrap topin"><button class="brand" data-act="nav" data-v="home" aria-label="मुख्य पृष्ठ"><span class="brand-name">'+MAG+'</span><span class="brand-sub">मासिक हिंदी पत्रिका</span></button>'
+   +'<nav class="tabs" aria-label="मुख्य">'+t('home','वर्तमान अंक')+t('archive','अंक-संग्रह')+t('submit','रचना भेजें')+(isEditor()?t('editor','संपादक पटल'):'')+acct+'</nav></div></header>';
+}
+function refreshHeader(){const h=document.getElementById('hdr');if(h)h.innerHTML=header()}
+function pdfBtn(i,cls){return '<button class="btn '+(cls||'ghost')+'" data-act="pdf" data-i="'+i+'"'+(S.busy?' disabled':'')+'>PDF डाउनलोड</button>'}
+function emptyView(){
+  return '<section class="wrap"><div class="card done" style="margin-top:40px"><h2>पहला अंक जल्द आ रहा है</h2><p>अक्षरपथ में अभी कोई अंक प्रकाशित नहीं हुआ है। आप अपनी रचना भेज सकते हैं।</p><p style="margin-top:16px"><button class="btn" data-act="nav" data-v="submit">रचना भेजें</button></p></div></section>';
+}
+function homeView(){
+  if(!issues.length)return emptyView();
+  const is=issues[0];
+  return '<section class="wrap hero"><div class="pageslot" data-issue="0" data-page="1" data-max="320"></div><div>'
+   +'<p class="eyebrow">नवीनतम अंक · '+issueLabel(is)+'</p><h1>'+esc(is.theme)+'</h1>'
+   +'<p class="issue-meta">'+dv(pageCount(is))+' पृष्ठ · हर महीने की पहली तारीख़ को नया अंक</p>'
+   +'<div class="actions"><button class="btn" data-act="read" data-i="0">ऑनलाइन पढ़ें</button>'+pdfBtn(0)+'</div>'
+   +'<h2 style="font-size:1.4rem;margin-bottom:8px">इस अंक में</h2><ol class="toc">'
+   +is.articles.map((a,i)=>'<li><span class="pg">'+dv(i+3)+'</span><span class="tt"><button data-act="goto" data-i="0" data-p="'+(i+3)+'"><b>'+esc(a.t)+'</b></button><span>'+esc(a.kind)+' · '+esc(a.by)+'</span></span></li>').join('')
+   +'</ol></div></section>'
+   +'<section class="wrap band"><div><h3>हर महीने एक अंक</h3><p>हर अंक में वर्ष, अंक संख्या, माह और पृष्ठ संख्या दर्ज रहती है, ताकि हर रचना का हवाला दिया जा सके।</p></div>'
+   +'<div><h3>ऑनलाइन और PDF</h3><p>हर अंक वेबसाइट पर पढ़ा जा सकता है और पूरा अंक PDF में सहेजा भी जा सकता है।</p></div>'
+   +'<div><h3>आपकी रचना, हमारे पन्नों पर</h3><p>कोई भी लेखक रचना भेज सकता है। प्रकाशन शुल्क रचना की लंबाई के अनुसार ₹'+dv(20)+' से ₹'+dv(100)+' तक।</p><p style="margin-top:12px"><button class="btn ghost sm" data-act="nav" data-v="submit">रचना भेजें</button></p></div></section>';
+}
+function archiveView(){
+  if(!issues.length)return emptyView();
+  const row=(is,i)=>'<div class="row"><div class="ank"><small>अंक</small>'+dv(is.ank)+'</div><div class="info"><b>'+esc(is.theme)+'</b><span>'+monthName(is)+' · '+dv(pageCount(is))+' पृष्ठ · '+dv(is.articles.length)+' रचनाएँ</span></div><div class="btns"><button class="btn sm" data-act="read" data-i="'+i+'">पढ़ें</button>'+pdfBtn(i,'ghost sm')+'</div></div>';
+  const vols=[...new Set(issues.map(x=>x.vol))];
+  return '<section class="wrap"><div class="page-h"><h1>अंक-संग्रह</h1><p>सभी प्रकाशित अंक, नए से पुराने क्रम में।</p></div>'
+   +vols.map(v=>'<div class="vol"><h2>वर्ष '+dv(v)+'</h2>'+issues.map((is,i)=>is.vol===v?row(is,i):'').join('')+'</div>').join('')+'</section>';
+}
+function readerView(){
+  const is=issues[S.issue];const n=pageCount(is);
+  const opts=Array.from({length:n},(_,k)=>{const p=k+1;const lab=p===1?'आवरण':p===2?'विषय-सूची':p===n?'अंतिम पृष्ठ':is.articles[p-3].t;return '<option value="'+p+'"'+(p===S.page?' selected':'')+'>'+dv(p)+' · '+esc(lab)+'</option>'}).join('');
+  return '<section class="wrap"><div class="rbar"><div><button class="btn ghost sm" data-act="nav" data-v="archive">← संग्रह</button></div><div class="who">'+issueLabel(is)+'</div>'+pdfBtn(S.issue,'ghost sm')+'</div>'
+   +'<div class="rstage"><div class="pageslot" id="rslot" data-issue="'+S.issue+'" data-page="'+S.page+'" data-max="520"></div></div>'
+   +'<div class="rnav"><button class="btn ghost" data-act="pg" data-d="-1"'+(S.page<=1?' disabled':'')+' aria-label="पिछला पृष्ठ">← पिछला</button>'
+   +'<span class="pgno">पृष्ठ '+dv(S.page)+' / '+dv(n)+'</span>'
+   +'<button class="btn ghost" data-act="pg" data-d="1"'+(S.page>=n?' disabled':'')+' aria-label="अगला पृष्ठ">अगला →</button>'
+   +'<select id="jump" aria-label="पृष्ठ पर जाएँ">'+opts+'</select></div></section>';
+}
+
+function submitFormView(){
+  if(S.done){
+    return '<section class="wrap"><div class="card done" style="margin-top:32px"><h2>रचना प्राप्त हुई</h2><p>आपकी रचना संपादक मंडल की जाँच के लिए जमा हो गई है।</p><div class="ref">'+esc(S.done)+'</div><p class="hint" style="margin-bottom:16px">यह संदर्भ संख्या संभाल कर रखिए।</p><button class="btn" data-act="again">एक और रचना भेजें</button></div></section>';
+  }
+  const plans=Object.keys(PLANS).map(k=>'<label class="plan"><input type="radio" name="plan" value="'+k+'"'+(k==='50'?' checked':'')+'><span class="amt">₹'+dv(k)+'</span><span class="nm">'+PLANS[k].name+'</span><span class="lim">'+PLANS[k].kinds+' · '+dv(PLANS[k].words)+' शब्द तक</span></label>').join('');
+  return '<section class="wrap"><div class="page-h"><h1>रचना भेजें</h1><p>अपनी रचना भेजिए और प्रकाशन शुल्क चुनिए। चुनी गई रचनाएँ आगामी मासिक अंक में छपेंगी।</p></div>'
+   +'<div class="formgrid"><div style="min-width:0"><div id="mine" class="mine"></div><form id="subForm" class="card" novalidate><div id="editBanner"></div>'
+   +'<div class="two"><div class="field"><label for="f-name">आपका नाम</label><input id="f-name" autocomplete="name" required></div><div class="field"><label for="f-city">शहर</label><input id="f-city" autocomplete="address-level2"></div></div>'
+   +'<div class="field"><label for="f-contact">ईमेल या मोबाइल नंबर</label><input id="f-contact" autocomplete="email" required><span class="hint">प्रकाशन की सूचना इसी पर भेजी जाएगी।</span></div>'
+   +'<div class="two"><div class="field"><label for="f-kind">विधा</label><select id="f-kind"><option>कविता</option><option>लघुकथा</option><option>कहानी</option><option>लेख</option><option>संस्मरण</option><option>यात्रा-वृत्त</option><option>अन्य</option></select></div><div class="field"><label for="f-title">रचना का शीर्षक</label><input id="f-title" required></div></div>'
+   +'<div class="field"><label for="f-body">रचना</label><textarea id="f-body" lang="hi" required placeholder="अपनी रचना यहाँ लिखिए या चिपकाइए"></textarea><span class="count" id="wc"></span></div>'
+   +'<div class="payblock"><fieldset class="plans"><legend class="legend" style="margin-bottom:8px">प्रकाशन शुल्क</legend>'+plans+'</fieldset>'
+   +'<div class="field" style="margin-bottom:6px"><span class="legend">UPI से भुगतान</span><span class="hint">इस UPI ID पर शुल्क भेजिए, फिर नीचे लेन-देन संख्या (UTR) लिखिए।</span></div>'
+   +'<div class="upi"><code id="upiId">'+UPI_ID+'</code><button type="button" class="btn ghost sm" data-act="copy">कॉपी करें</button></div>'
+   +'<div class="field"><label for="f-utr">UPI लेन-देन संख्या (१२ अंक)</label><input id="f-utr" inputmode="numeric" maxlength="12" autocomplete="off" required></div>'
+   +'<label class="chk"><input type="checkbox" id="f-own"><span>यह रचना मेरी मौलिक है और मैं इसे अक्षरपथ में प्रकाशित करने की अनुमति देता/देती हूँ।</span></label></div>'
+   +'<p class="err" id="formErr" role="alert" hidden></p>'
+   +'<button class="btn" type="submit" id="subBtn">रचना जमा करें</button></form></div>'
+   +'<aside class="side card"><h3>प्रक्रिया</h3><ul><li>रचना और शुल्क की जानकारी भरिए।</li><li>संपादक मंडल रचना और भुगतान की जाँच करता है।</li><li>चयनित रचना अगले मासिक अंक में वर्ष, अंक और पृष्ठ संख्या के साथ छपती है।</li><li>अंक ऑनलाइन पढ़ने और PDF के रूप में उपलब्ध रहता है।</li></ul></aside></div></section>';
+}
+
+function loginCard(){
+  return '<div class="card" style="margin-bottom:18px"><h3 style="margin-bottom:6px">पहले साइन-इन कीजिए</h3><p class="hint" style="margin-bottom:12px">आपके ईमेल पर एक लिंक आएगा। पासवर्ड की ज़रूरत नहीं।</p><div class="field"><label for="f-mail">ईमेल</label><input id="f-mail" type="email" autocomplete="email"></div><button class="btn" data-act="login">लिंक भेजें</button><p class="hint" id="loginMsg" role="status" style="margin-top:10px"></p></div>';
+}
+function submitGate(){
+  if(DEMO)return '<section class="wrap"><div class="page-h"><h1>रचना भेजें</h1></div><div class="card" style="margin-top:20px"><p>यह डेमो दृश्य है। config.js में Supabase की कुंजियाँ जोड़ने पर रचना भेजना चालू हो जाएगा।</p></div></section>';
+  if(!S.user)return '<section class="wrap"><div class="page-h"><h1>रचना भेजें</h1><p>अपनी रचना भेजने और बाद में उसमें बदलाव करने के लिए साइन-इन कीजिए।</p></div><div style="max-width:520px;margin-top:24px">'+loginCard()+'</div></section>';
+  return submitFormView();
+}
+function editorView(){
+  return '<section class="wrap"><div class="page-h"><h1>संपादक पटल</h1><p>अंक बनाइए, रचनाएँ जाँचिए और प्रकाशित कीजिए। संपादक प्रकाशन से पहले और बाद, दोनों समय बदलाव कर सकते हैं।</p></div>'
+   +'<div id="issuebox" style="margin-top:20px"></div><h2 style="font-size:1.4rem;margin:28px 0 12px">जमा हुई रचनाएँ</h2><div id="edlist"></div></section>';
+}
+function render(){
+  if(S.view!=='submit')S.editRef=null;
+  if(S.view==='editor'&&!isEditor())S.view='home';
+  const body=S.view==='home'?homeView():S.view==='archive'?archiveView():S.view==='reader'?readerView():S.view==='editor'?editorView():submitGate();
+  root.innerHTML='<div id="hdr">'+header()+'</div><div id="main">'+body+'<div class="wrap foot">'+(DEMO?'डेमो: इस दृश्य में दिखाई गई रचनाएँ नमूना सामग्री हैं।':'© अक्षरपथ')+'</div></div>';
+  mountAll();
+  if(S.view==='submit'&&S.user&&!DEMO){updateCount();loadMine()}
+  if(S.view==='editor')loadEditor();
+}
+
+/* ---------- submit form ---------- */
+const words=t=>(t.trim().match(/\S+/g)||[]).length;
+function curPlan(){if(S.editRef){const it=(S.mine||[]).find(x=>x.ref===S.editRef);if(it)return +it.plan}const r=root.querySelector('input[name=plan]:checked');return r?+r.value:50}
+function updateCount(){
+  const b=document.getElementById('f-body'),c=document.getElementById('wc');if(!b||!c)return;
+  const w=words(b.value),lim=PLANS[curPlan()].words;
+  c.textContent=dv(w)+' / '+dv(lim)+' शब्द';
+  c.classList.toggle('over',w>lim);
+}
+function formError(msg){const e=document.getElementById('formErr');e.textContent=msg;e.hidden=!msg;if(msg)e.scrollIntoView({block:'nearest'})}
+const val=id=>(document.getElementById(id).value||'').trim();
+
+async function submitForm(){
+  if(S.editRef)return saveEdit();
+  const plan=curPlan();
+  const name=val('f-name'),contact=val('f-contact'),title=val('f-title'),body=val('f-body'),utr=val('f-utr');
+  if(!name)return formError('कृपया अपना नाम लिखिए।');
+  if(!contact)return formError('कृपया ईमेल या मोबाइल नंबर लिखिए।');
+  if(!title)return formError('कृपया रचना का शीर्षक लिखिए।');
+  if(!body)return formError('कृपया रचना लिखिए।');
+  if(words(body)>PLANS[plan].words)return formError('रचना ₹'+dv(plan)+' वाली श्रेणी की सीमा ('+dv(PLANS[plan].words)+' शब्द) से लंबी है। अगली श्रेणी चुनिए या रचना छोटी कीजिए।');
+  if(!/^\d{12}$/.test(utr))return formError('UPI लेन-देन संख्या ठीक १२ अंकों की होनी चाहिए।');
+  if(!document.getElementById('f-own').checked)return formError('कृपया मौलिकता की पुष्टि कीजिए।');
+  formError('');
+  const btn=document.getElementById('subBtn');btn.disabled=true;btn.textContent='जमा हो रही है…';
+  const r=await sb.from('articles').insert({author_id:S.user.id,name,city:val('f-city'),contact,kind:val('f-kind'),title,body,plan,utr}).select('ref').single();
+  if(r.error){btn.disabled=false;btn.textContent='रचना जमा करें';return formError('रचना जमा नहीं हो सकी। कुछ देर बाद फिर कोशिश कीजिए।')}
+  S.done=r.data.ref;render();window.scrollTo(0,0);
+}
+
+/* ---------- author: my submissions (editable only until published; enforced by database rules) ---------- */
+async function loadMine(){
+  const r=await sb.from('articles').select('*').eq('author_id',S.user.id).order('created_at',{ascending:false});
+  S.mine=r.error?null:r.data;renderMine();
+}
+function renderMine(){
+  const el=document.getElementById('mine');if(!el)return;
+  if(!S.mine||!S.mine.length){el.innerHTML='';return}
+  el.innerHTML='<div class="card"><h3>मेरी रचनाएँ</h3><p class="hint" style="margin-bottom:6px">प्रकाशन से पहले आप रचना में बदलाव कर सकते हैं। प्रकाशन के बाद बदलाव केवल संपादक कर सकते हैं।</p>'
+   +S.mine.map(it=>{const pub=it.status===ST_PUB;
+     return '<div class="item"><div class="i-t"><b>'+esc(it.title)+'</b><span>'+esc(it.ref)+' · '+esc(it.kind)+'</span></div><span class="chip'+(pub?' pub':'')+'">'+STL[it.status]+'</span>'
+      +(pub?'':'<button class="btn ghost sm" data-act="edit" data-ref="'+esc(it.ref)+'">संपादित करें</button>')+'</div>'}).join('')+'</div>';
+}
+function startEdit(ref){
+  const it=(S.mine||[]).find(x=>x.ref===ref);if(!it||it.status===ST_PUB)return;
+  S.editRef=ref;
+  const set=(id,v)=>{document.getElementById(id).value=v||''};
+  set('f-name',it.name);set('f-city',it.city);set('f-contact',it.contact);set('f-kind',it.kind);set('f-title',it.title);set('f-body',it.body);
+  document.getElementById('subForm').classList.add('editing');
+  document.getElementById('subBtn').textContent='बदलाव सहेजें';
+  document.getElementById('editBanner').innerHTML='<div class="banner"><span>संपादित हो रही है: <b>'+esc(it.title)+'</b></span><button type="button" class="btn ghost sm" data-act="cancel-edit">रद्द करें</button></div>';
+  formError('');updateCount();
+  document.getElementById('subForm').scrollIntoView({block:'start'});
+}
+function endEdit(){
+  S.editRef=null;
+  const f=document.getElementById('subForm');if(!f)return;
+  f.reset();f.classList.remove('editing');
+  document.getElementById('subBtn').disabled=false;
+  document.getElementById('subBtn').textContent='रचना जमा करें';
+  document.getElementById('editBanner').innerHTML='';
+  updateCount();
+}
+async function saveEdit(){
+  const name=val('f-name'),contact=val('f-contact'),title=val('f-title'),body=val('f-body');
+  if(!name||!contact||!title||!body)return formError('नाम, संपर्क, शीर्षक और रचना भरना ज़रूरी है।');
+  if(words(body)>PLANS[curPlan()].words)return formError('रचना आपकी चुनी हुई श्रेणी की सीमा ('+dv(PLANS[curPlan()].words)+' शब्द) से लंबी है।');
+  const btn=document.getElementById('subBtn');btn.disabled=true;
+  const it=(S.mine||[]).find(x=>x.ref===S.editRef);
+  const r=await sb.from('articles').update({name,city:val('f-city'),contact,kind:val('f-kind'),title,body}).eq('id',it.id).eq('status',ST_REVIEW).select('id');
+  if(r.error){btn.disabled=false;return formError('बदलाव सहेजे नहीं जा सके। कुछ देर बाद फिर कोशिश कीजिए।')}
+  const locked=!r.data.length;
+  endEdit();await loadMine();
+  if(locked)formError('यह रचना प्रकाशित हो चुकी है। अब केवल संपादक इसमें बदलाव कर सकते हैं।');
+  else{formError('');toast('बदलाव सहेज लिए गए।')}
+}
+
+/* ---------- editor / moderator panel ---------- */
+async function loadEditor(){
+  const [a,b]=await Promise.all([
+    sb.from('issues').select('*').order('ank',{ascending:false}),
+    sb.from('articles').select('*').order('created_at',{ascending:false})
+  ]);
+  S.allIssues=a.data||[];S.all=b.data||[];
+  renderIssueBox();renderEditor();
+}
+function renderIssueBox(){
+  const el=document.getElementById('issuebox');if(!el)return;
+  const maxAnk=S.allIssues.reduce((m,x)=>Math.max(m,x.ank),0);
+  const now=new Date();
+  const list=S.allIssues.map(i=>'<div class="item"><div class="i-t"><b>वर्ष '+dv(i.vol)+' · अंक '+dv(i.ank)+' · '+MONTHS[i.month-1]+' '+dv(i.year)+'</b><span>'+esc(i.theme)+'</span></div><span class="chip'+(i.is_live?' pub':'')+'">'+(i.is_live?'जारी':'तैयारी में')+'</span>'
+    +'<button class="btn ghost sm" data-act="issue-live" data-id="'+esc(i.id)+'" data-live="'+(i.is_live?'0':'1')+'">'+(i.is_live?'वापस लें':'जारी करें')+'</button></div>').join('');
+  el.innerHTML='<div class="card"><h3 style="margin-bottom:8px">अंक</h3>'+(list||'<p class="hint">अभी कोई अंक नहीं है। पहला अंक बनाइए।</p>')
+   +'<form id="issueForm" style="margin-top:16px" novalidate><div class="two"><div class="field"><label for="i-vol">वर्ष (Volume)</label><input id="i-vol" type="number" min="1" value="'+(S.allIssues[0]?S.allIssues[0].vol:1)+'"></div><div class="field"><label for="i-ank">अंक संख्या</label><input id="i-ank" type="number" min="1" value="'+(maxAnk+1)+'"></div></div>'
+   +'<div class="two"><div class="field"><label for="i-month">माह</label><select id="i-month">'+MONTHS.map((m,k)=>'<option value="'+(k+1)+'"'+(k===now.getMonth()?' selected':'')+'>'+m+'</option>').join('')+'</select></div><div class="field"><label for="i-year">वर्ष (सन्)</label><input id="i-year" type="number" value="'+now.getFullYear()+'"></div></div>'
+   +'<div class="field"><label for="i-theme">अंक का विषय</label><input id="i-theme"></div><div class="field"><label for="i-note">संपादकीय टिप्पणी</label><input id="i-note"></div>'
+   +'<p class="err" id="issueErr" role="alert" hidden></p><button class="btn sm" type="submit">अंक बनाइए</button></form></div>';
+}
+function renderEditor(){
+  const el=document.getElementById('edlist');if(!el)return;
+  if(!S.all.length){el.innerHTML='<div class="card"><p>अभी कोई रचना जमा नहीं हुई है।</p></div>';return}
+  const opts=S.allIssues.map(i=>'<option value="'+esc(i.id)+'">अंक '+dv(i.ank)+' · '+MONTHS[i.month-1]+' '+dv(i.year)+'</option>').join('');
+  el.innerHTML=S.all.map(it=>{
+    const pub=it.status===ST_PUB,id=esc(it.id),at='data-id="'+id+'"';
+    return '<details class="ed"'+(S.openId===it.id?' open':'')+'><summary><span><b style="font-family:var(--f-display);font-weight:400;font-size:1.1rem">'+esc(it.title)+'</b> · '+esc(it.name)+'</span><span><span class="chip'+(pub?' pub':'')+'">'+STL[it.status]+'</span> ₹'+dv(it.plan)+'</span></summary><div class="edin">'
+     +'<p class="meta">'+esc(it.ref)+' · '+esc(it.kind)+' · '+esc(it.contact)+' · UTR '+esc(it.utr)+'</p>'
+     +'<div class="field"><label for="et-'+id+'">शीर्षक</label><input id="et-'+id+'" value="'+esc(it.title)+'"></div>'
+     +'<div class="field"><label for="eb-'+id+'">रचना</label><textarea id="eb-'+id+'" lang="hi">'+esc(it.body)+'</textarea></div>'
+     +(pub?'':'<div class="field"><label for="ei-'+id+'">किस अंक में छापें</label><select id="ei-'+id+'">'+(opts||'<option value="">पहले अंक बनाइए</option>')+'</select></div>')
+     +'<div class="edbtns"><button class="btn ghost sm" data-act="ed-save" '+at+'>बदलाव सहेजें</button>'
+     +(pub?'<button class="btn ghost sm" data-act="ed-unpub" '+at+'>प्रकाशन वापस लें</button>':'<button class="btn sm" data-act="ed-pub" '+at+'>प्रकाशित करें</button>')
+     +'</div></div></details>';
+  }).join('');
+}
+async function edAct(kind,id){
+  const g=x=>document.getElementById(x+'-'+id);
+  const patch={};
+  if(kind!=='unpub'){const t=g('et').value.trim(),b=g('eb').value.trim();if(!t||!b){toast('शीर्षक और रचना खाली नहीं हो सकते।');return}patch.title=t;patch.body=b}
+  if(kind==='pub'){const iss=g('ei')&&g('ei').value;if(!iss){toast('पहले अंक चुनिए।');return}patch.status=ST_PUB;patch.issue_id=iss;patch.published_at=new Date().toISOString()}
+  if(kind==='unpub'){patch.status=ST_REVIEW;patch.issue_id=null;patch.published_at=null}
+  const r=await sb.from('articles').update(patch).eq('id',id).select('id');
+  if(r.error||!r.data.length){toast('यह बदलाव सहेजा नहीं जा सका।');return}
+  S.openId=id;await Promise.all([loadEditor(),loadPublic()]);
+  toast(kind==='pub'?'रचना प्रकाशित हो गई।':kind==='unpub'?'प्रकाशन वापस ले लिया गया।':'बदलाव सहेज लिए गए।');
+}
+async function createIssue(){
+  const num=id=>parseInt(document.getElementById(id).value,10);
+  const rec={vol:num('i-vol'),ank:num('i-ank'),month:num('i-month'),year:num('i-year'),theme:val('i-theme'),note:val('i-note')||null};
+  const err=document.getElementById('issueErr');
+  if(!(rec.vol>0&&rec.ank>0&&rec.year>2000)||!rec.theme){err.textContent='वर्ष, अंक संख्या, सन् और विषय भरना ज़रूरी है।';err.hidden=false;return}
+  const r=await sb.from('issues').insert(rec);
+  if(r.error){err.textContent='अंक नहीं बन सका। शायद यह वर्ष और अंक संख्या पहले से मौजूद है।';err.hidden=false;return}
+  await loadEditor();toast('अंक बन गया।');
+}
+async function setLive(id,live){
+  const r=await sb.from('issues').update({is_live:live}).eq('id',id);
+  if(r.error){toast('बदलाव नहीं हो सका।');return}
+  await Promise.all([loadEditor(),loadPublic()]);
+  toast(live?'अंक जारी हो गया।':'अंक वापस ले लिया गया।');
+}
+
+/* ---------- PDF ---------- */
+async function makePDF(i){
+  if(S.busy)return;
+  const is=issues[i];
+  if(!window.html2canvas||!window.jspdf){toast('PDF बनाने के औज़ार लोड नहीं हुए। पेज दोबारा खोलिए।');return}
+  S.busy=true;syncBusy();
+  const stage=document.createElement('div');
+  stage.style.cssText='position:fixed;left:-10000px;top:0;';
+  document.body.appendChild(stage);
+  try{
+    await document.fonts.ready;
+    await Promise.all(['400 16px "Noto Serif Devanagari"','600 16px "Noto Serif Devanagari"','400 16px "Tiro Devanagari Hindi"','400 16px Hind','600 16px Hind'].map(f=>document.fonts.load(f,'अक्षर')));
+    const n=pageCount(is);
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a5',orientation:'portrait'});
+    for(let p=1;p<=n;p++){
+      toast('PDF बन रहा है… '+dv(p)+' / '+dv(n),true);
+      const el=pageEl(is,p,420);stage.replaceChildren(el);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const cv=await window.html2canvas(el,{scale:2,backgroundColor:'#ffffff'});
+      if(p>1)pdf.addPage();
+      pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,148,210);
+    }
+    pdf.save('Aksharpath_Vol'+is.vol+'_Ank'+is.ank+'_'+MON_EN[is.m]+is.y+'.pdf');
+    toast('PDF तैयार है।');
+  }catch(e){toast('PDF नहीं बन सका। कुछ देर बाद फिर कोशिश कीजिए।')}
+  finally{stage.remove();S.busy=false;syncBusy()}
+}
+function syncBusy(){root.querySelectorAll('[data-act=pdf]').forEach(b=>{b.disabled=S.busy})}
+
+/* ---------- events ---------- */
+root.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act;
+  if(a==='nav'){S.view=b.dataset.v;render();window.scrollTo(0,0)}
+  else if(a==='read'){S.issue=+b.dataset.i;S.page=1;S.view='reader';render();window.scrollTo(0,0)}
+  else if(a==='goto'){S.issue=+b.dataset.i;S.page=+b.dataset.p;S.view='reader';render();window.scrollTo(0,0)}
+  else if(a==='pg'){const n=pageCount(issues[S.issue]);S.page=Math.max(1,Math.min(n,S.page+ +b.dataset.d));render()}
+  else if(a==='pdf'){makePDF(+b.dataset.i)}
+  else if(a==='again'){S.done=null;render()}
+  else if(a==='edit'){startEdit(b.dataset.ref)}
+  else if(a==='cancel-edit'){endEdit()}
+  else if(a==='ed-save'||a==='ed-pub'||a==='ed-unpub'){edAct(a.slice(3),b.dataset.id)}
+  else if(a==='issue-live'){setLive(b.dataset.id,b.dataset.live==='1')}
+  else if(a==='logout'){await sb.auth.signOut();S.view='home';render()}
+  else if(a==='login'){
+    const mail=(document.getElementById('f-mail').value||'').trim(),msg=document.getElementById('loginMsg');
+    if(!/^\S+@\S+\.\S+$/.test(mail)){msg.textContent='कृपया सही ईमेल लिखिए।';return}
+    b.disabled=true;
+    const r=await sb.auth.signInWithOtp({email:mail,options:{emailRedirectTo:location.origin+location.pathname}});
+    b.disabled=false;
+    msg.textContent=r.error?'लिंक नहीं भेजा जा सका। कुछ देर बाद फिर कोशिश कीजिए।':'लिंक भेज दिया गया है। अपना ईमेल खोलकर उस पर क्लिक कीजिए।';
+  }
+  else if(a==='copy'){
+    const fallback=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('upiId'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('UPI ID चुना गया है, कॉपी कर लीजिए।')};
+    try{navigator.clipboard.writeText(UPI_ID).then(()=>toast('UPI ID कॉपी हो गई।'),fallback)}catch(_){fallback()}
+  }
+});
+root.addEventListener('input',e=>{if(e.target.id==='f-body')updateCount()});
+root.addEventListener('change',e=>{
+  if(e.target.name==='plan')updateCount();
+  if(e.target.id==='jump'){S.page=+e.target.value;render()}
+});
+root.addEventListener('submit',e=>{
+  if(e.target.id==='subForm'){e.preventDefault();submitForm()}
+  if(e.target.id==='issueForm'){e.preventDefault();createIssue()}
+});
+document.addEventListener('keydown',e=>{
+  if(S.view!=='reader'||!issues[S.issue])return;
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement&&document.activeElement.tagName))return;
+  const n=pageCount(issues[S.issue]);
+  if(e.key==='ArrowRight'&&S.page<n){S.page++;render()}
+  if(e.key==='ArrowLeft'&&S.page>1){S.page--;render()}
+});
+let rt=0;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(mountAll,120)});
+
+/* ---------- start ---------- */
+(async function(){
+  await loadPublic();
+  render();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(S.view!=='submit')mountAll()});
+  if(!DEMO){
+    const s=await sb.auth.getSession();
+    await setUser(s.data.session);refreshHeader();
+    sb.auth.onAuthStateChange((ev,session)=>{
+      if(ev==='INITIAL_SESSION')return;
+      setUser(session).then(()=>{refreshHeader();if(S.view==='submit'||S.view==='editor')render()});
+    });
+  }
+})();
+})();
